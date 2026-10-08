@@ -35,14 +35,17 @@ These come from `memlog.py` (a short version of BMad's script):
 
 ## What a memlog looks like
 
+An excerpt from the example in this repository:
+
 ```markdown
 ---
 topic: Expense report export
-updated: 2026-10-07T14:22
+updated: 2026-10-08T09:32
 ---
 
-- (capability) CAP-1 export the month as CSV; success: the file opens in Excel with one row per expense
-- (decision by user) CAP-1 also exports PDF
+- (capability) CAP-2 the system emails the previous month's CSV to the accounting mailbox on the 1st of each month; success: on the 1st, the accounting mailbox receives the CSV of the previous month
+- (question) which CSV layout (columns, separator, date format) does the accounting software import?
+- (decision by user) CAP-2 dropped: accounting prefers to download the file themselves, no automatic email
 ```
 
 The frontmatter holds metadata. Each entry is a single line written as `- (type) text` or
@@ -60,7 +63,8 @@ specs/<slug>/
   spec.md                  the spec derived from it
 ```
 
-`specs/first-test/` is a worked example that was produced by running the skill.
+`specs/expense-report-export/` is a worked example produced by running the skill. It is described
+in [The worked example](#the-worked-example).
 
 ## How the skill uses the memlog
 
@@ -91,17 +95,46 @@ Entry types and where each one lands in the spec:
 | `decision` | a choice that changes any of the above | the section it changes |
 | `note`, `event` | context and process | stays in the memlog only |
 
-## Things to observe in the example
+## The worked example
 
-Open `specs/first-test/.memlog.md` next to `specs/first-test/spec.md`:
+`specs/expense-report-export/` follows a fictional team that specs a month-end export for its
+expense app. At month end, accounting retypes every approved expense into the accounting software by
+hand. The skill was run three times, and each run is marked in the memlog by an `event` entry
+(`run 1 started`, `run 2 started`, `run 3 started`). Open `.memlog.md` next to `spec.md` and follow
+the runs:
 
-- The input contained two bad entries (`capabilty`, which is a typo, and `toto`, which is not a known
-  type). The agent did not fix them in place. It appended `assumption` entries that explain how it
-  read them.
-- The missing information (why, success criterion, non-goals) shows up as Open Questions in the spec.
-  Nothing was invented to fill the gaps.
-- The spec was deleted and rebuilt, and the result came out identical, because it is derived only from
-  the log. The log itself records each rebuild as `event` entries.
+**Run 1, create.** The product owner's notes become 10 entries:
+
+- one `why`;
+- two capabilities: CAP-1, a CSV export, and CAP-2, an automatic email to accounting on the 1st;
+- two constraints: only approved expenses are exported, and only the finance role can export;
+- one non-goal: no integration with the accounting software's API;
+- one assumption: amounts stay in their approval currency;
+- one question: which CSV layout does the accounting software import?
+
+The first `spec.md` is derived from those entries.
+
+**Run 2, update.** Accounting's answers are appended. Nothing above them is edited:
+
+- A `decision` answers the CSV layout question. The question leaves Open Questions, and the layout
+  appears under Constraints.
+- A `decision` drops CAP-2. It disappears from the spec, but its line stays in the memlog, so the
+  history shows that an automatic email was considered and why it was dropped.
+- A new capability takes **CAP-3**, not CAP-2. IDs are never reused, so "CAP-2" always means the
+  email, wherever it is quoted.
+- A new `question` about the PDF totals becomes the spec's only open question.
+
+**Run 3, rebuild.** `spec.md` was deleted and derived again from the memlog alone. The result is
+identical to the run 2 spec, which shows that the spec holds nothing the log does not.
+
+Other things to notice:
+
+- **Assumptions stay visible.** The currency assumption was never confirmed, so it stays under
+  Assumptions. It would move only if a later `decision` confirmed or replaced it.
+- **Validation is logged.** After each derivation, the coherence and preservation checks are recorded
+  as `event` entries, followed by a `spec re-derived: ...` line that summarises what changed.
+- **History is not in the spec.** `spec.md` shows only the current state. To know why the spec looks
+  the way it does, read the memlog.
 
 ## Try it
 
